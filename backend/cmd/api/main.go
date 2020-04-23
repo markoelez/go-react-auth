@@ -8,7 +8,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -28,11 +27,10 @@ func run() error {
 
 	// =========================================================================
 	// setup server config
-	err := godotenv.Load()
-	if err != nil {
-		return err
+	c := cfg{Port: os.Getenv("PORT")} //  get port from docker
+	if len(c.Port) == 0 {
+		c.Port = "8090" // default to 8090 if not found
 	}
-	c := cfg{Port: os.Getenv("PORT")} // get port from docker env (for now use .env file)
 
 	// =========================================================================
 	// setup database

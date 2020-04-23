@@ -7,7 +7,6 @@ import (
 
 func API(db *mongo.Client) *mux.Router {
 	r := mux.NewRouter()
-	r.PathPrefix("/api/")
 
 	// users routes
 	s := r.PathPrefix("/users").Subrouter()

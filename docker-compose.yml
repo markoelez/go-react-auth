@@ -16,4 +16,17 @@ services:
       - ./client/public:/client/public
     tty: true
     command: npm run start
-       
+
+  # server setup
+  api:
+    build: ./backend
+    environment:
+      - PORT=${API_PORT}
+    expose:
+      - ${API_PORT}
+    ports:
+      - ${API_PORT}:${API_PORT}
+    working_dir: /backend/cmd/api
+    command: go run main.go
+
+  
