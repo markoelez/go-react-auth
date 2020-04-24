@@ -5,13 +5,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func API(db *mongo.Client) *mux.Router {
+func API(db *mongo.Database) *mux.Router {
 	r := mux.NewRouter()
 
-	// users routes
+	// user routes
 	s := r.PathPrefix("/users").Subrouter()
+	u := User{db: db}
 
-	s.HandleFunc("/getAll", UsersHandler).Methods("GET")
+	s.HandleFunc("/register", u.Create).Methods("POST")
+	s.HandleFunc("/authenticate", u.Authenticate).Methods("POST")
 
 	return r
 

@@ -5,21 +5,30 @@ echo "Building containers..."
 C_PORT=8080 # default to 8080
 S_PORT=8081 # default to 8081
 
-while getopts "c:s:" flag
+while getopts "c:s:u:n:h:p:" flag
 do
   case $flag in
       c) C_PORT=$OPTARG ;;
       s) S_PORT=$OPTARG ;;
+      u) DB_USER=$OPTARG ;;
+      n) DB_NAME=$OPTARG ;;
+      h) DB_HOST=$OPTARG ;;
+      p) DB_PASS=$OPTARG ;;
   esac
 done
 
 
-echo "Starting clSent on Port $C_PORT ..."
+echo "Starting client Port $C_PORT ..."
 echo "Starting api on Port $S_PORT ..."
 
 # set env variables for docker child processes
 export CLIENT_PORT=$C_PORT
 export API_PORT=$S_PORT
+
+export DB_HOST=$DB_HOST
+export DB_NAME=$DB_NAME
+export DB_USER=$DB_USER
+export DB_PASSWORD=$DB_PASS
 
 docker-compose up
 

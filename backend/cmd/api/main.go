@@ -1,15 +1,12 @@
 package main
 
 import (
-	"context"
+	"errors"
 	"go-react-auth-backend/cmd/api/handlers"
+	"go-react-auth-backend/internal/platform/database"
 	"log"
 	"net/http"
 	"os"
-	"time"
-
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func main() {
@@ -37,26 +34,35 @@ func run() error {
 
 	log.Println("main : Started : Initializing database support")
 
+	// get db vars
+	//godotenv.Load() // for now load from .env
+	du := os.Getenv("DB_USER")
+	dp := os.Getenv("DB_PASSWORD")
+	dh := os.Getenv("DB_HOST")
+	dn := os.Getenv("DB_NAME")
+	if len(du) == 0 || len(dp) == 0 || len(dn) == 0 {
+		return errors.New("No database information provided!")
+	}
+
 	// connect to mongoDB
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb+srv://def_user:TESTER@algoprepdb-vopr0.mongodb.net/t    est?retryWrites=true&w=majority"))
+	db_cfg := database.Config{
+		User:     du,
+		Password: dp,
+		Name:     dn,
+		Host:     dh,
+	}
+	db, err := database.Open(db_cfg)
 	if err != nil {
 		return err
 	}
 
-	// test connection
-	err = client.Ping(context.TODO(), nil)
-	if err != nil {
-		return err
-	}
-
-	log.Println("main : Started : Connected to database...")
+	log.Println("main : Started : Successfully connected to database!")
 
 	// =========================================================================
 	// setup api
 
-	log.Println("main : Started : Initializing API support")
-	router := handlers.API(client)
+	log.Println("main : Started : Initializing API support...")
+	router := handlers.API(db)
 
 	log.Printf("main : API listening on port %s", c.Port)
 
