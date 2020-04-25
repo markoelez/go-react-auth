@@ -13,7 +13,6 @@ type User struct {
 	Email         string              `json:"email"`
 	PasswordHash  string              `json:"password_hash" bson:"password_hash"`
 	DateCreated   time.Time           `json:"date_created" bson:"date_created"`
-	AccessToken   string              `json:"access_token" bson:"access_token"`
 	RefreshTokens []string            `json:"refresh_tokens" bson:"refresh_tokens"`
 }
 

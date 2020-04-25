@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -35,7 +37,7 @@ func run() error {
 	log.Println("main : Started : Initializing database support")
 
 	// get db vars
-	//godotenv.Load() // for now load from .env
+	godotenv.Load() // for now load from .env
 	du := os.Getenv("DB_USER")
 	dp := os.Getenv("DB_PASSWORD")
 	dh := os.Getenv("DB_HOST")

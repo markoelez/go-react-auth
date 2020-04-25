@@ -3,12 +3,11 @@ package user
 import (
 	"context"
 	"errors"
-	"fmt"
+	"go-react-auth-backend/internal/platform/auth"
 	"go-react-auth-backend/internal/platform/database"
 	"log"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -45,7 +44,6 @@ func Create(ctx context.Context, db *mongo.Database, n NewUser, now time.Time) (
 		PasswordHash: string(hash),
 		DateCreated:  now.UTC(),
 	}
-
 	// upload to db
 	uc := database.GetCollection(db, userCollection)
 	// check if email exists first
@@ -65,7 +63,7 @@ func Create(ctx context.Context, db *mongo.Database, n NewUser, now time.Time) (
 	return &u, nil
 }
 
-func Authenticate(ctx context.Context, db *mongo.Database, u *NewUser) (*User, error) {
+func Authenticate(ctx context.Context, db *mongo.Database, u *NewUser) (*auth.TokenPair, error) {
 
 	log.Println("user : started : Checking if account exists")
 
@@ -76,8 +74,6 @@ func Authenticate(ctx context.Context, db *mongo.Database, u *NewUser) (*User, e
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Printf("DBU: %+v\n", dbu)
 
 	log.Println("user : started : Validating password hash")
 
@@ -90,45 +86,37 @@ func Authenticate(ctx context.Context, db *mongo.Database, u *NewUser) (*User, e
 	log.Println("user : started : Generating auth tokens")
 
 	// generate access & refresh tokens
-	at := jwt.New(jwt.SigningMethodHS256)
-	rt := jwt.New(jwt.SigningMethodHS256)
+	t, err := auth.GetTokenPair(u.Email, "SECRET")
 
-	// set claims
-	at_claims := make(jwt.MapClaims)
-	at_claims["sub"] = u.Email
-	at_claims["exp"] = time.Now().Add(time.Minute * 15).Unix() // access token expires every 15 min
-
-	rt_claims := make(jwt.MapClaims)
-	rt_claims["sub"] = u.Email
-	rt_claims["exp"] = time.Now().Add(time.Hour * 1).Unix() // refresh token expires every 1 hour
-
-	// sign access token with password hash, refresh with standard secret
-	at_signed, err := at.SignedString([]byte(dbu.PasswordHash))
-	if err != nil {
-		return nil, err
-	}
-	rt_signed, err := rt.SignedString([]byte("SECRET"))
-	if err != nil {
-		return nil, err
-	}
-
-	// add tokens to user
-	dbu.AccessToken = at_signed
+	// add refresh tokens to user for more convenient revocation
 	if dbu.RefreshTokens == nil || len(dbu.RefreshTokens) == 0 {
 		dbu.RefreshTokens = make([]string, 0, 20)
 	}
-	dbu.RefreshTokens = append(dbu.RefreshTokens, rt_signed)
-
-	log.Println("\nID: \n", dbu.ID)
+	dbu.RefreshTokens = append(dbu.RefreshTokens, t.RefreshToken)
 
 	// add token to user in DB
-	_, err = uc.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": dbu.ID}}, bson.M{"$set": bson.M{"access_token": dbu.AccessToken, "refresh_tokens": dbu.RefreshTokens}}, options.Update().SetUpsert(true))
+	_, err = uc.UpdateOne(ctx, bson.M{"_id": bson.M{"$eq": dbu.ID}}, bson.M{"$set": bson.M{"access_token": t.AccessToken, "refresh_tokens": dbu.RefreshTokens}}, options.Update().SetUpsert(true))
 	if err != nil {
 		return nil, err
 	}
 
-	log.Println("user : started : Authentication successful, returning user")
+	log.Println("user : started : Authentication successful, returning user with auth tokens")
 
-	return dbu, nil
-
+	return t, nil
 }
+
+// validates an access token
+func ValidateToken(ctx context.Context, db *mongo.Database, token string) error {
+	_, err := auth.ValidateToken(token, "SECRET")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// retrieves a new access token
+//func RetrieveToken() {}
+
+// logs a user out by clearing their local & remote access tokens and refresh tokens
+//func Logout() {}

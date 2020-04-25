@@ -14,6 +14,7 @@ func API(db *mongo.Database) *mux.Router {
 
 	s.HandleFunc("/register", u.Create).Methods("POST")
 	s.HandleFunc("/authenticate", u.Authenticate).Methods("POST")
+	s.HandleFunc("/validateToken", u.ValidateToken).Methods("POST")
 
 	return r
 

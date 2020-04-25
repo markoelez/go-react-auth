@@ -3,10 +3,11 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"go-react-auth-backend/internal/platform/auth"
 	"go-react-auth-backend/internal/user"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -50,12 +51,31 @@ func (u *User) Authenticate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// handle auth
-	var authed *user.User
-	authed, err = user.Authenticate(context.TODO(), u.db, usr)
+	var authTokens *auth.TokenPair
+	authTokens, err = user.Authenticate(context.TODO(), u.db, usr)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("\nAuthenticated User: %+v\n", authed)
-	json.NewEncoder(w).Encode(authed)
+	json.NewEncoder(w).Encode(authTokens)
+}
+
+// authenticates users by validating email & password
+func (u *User) ValidateToken(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	// decode into User struct
+	reqToken := r.Header.Get("Authorization")
+	splitToken := strings.Split(reqToken, "Bearer")
+	if len(splitToken) != 2 {
+		// Error: Bearer token not in proper format
+	}
+
+	reqToken = strings.TrimSpace(splitToken[1])
+
+	err := user.ValidateToken(context.TODO(), u.db, reqToken)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 }
